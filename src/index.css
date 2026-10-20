@@ -1,1 +1,4 @@
 @import "tailwindcss";
+
+/* Não gera classes a partir dos arquivos da skill */
+@source not "../.claude";
