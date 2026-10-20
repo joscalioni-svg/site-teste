@@ -1,0 +1,9 @@
+{
+  "name": "site-teste",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    // Fallback para SPA: rotas desconhecidas servem o index.html
+    "not_found_handling": "single-page-application"
+  }
+}

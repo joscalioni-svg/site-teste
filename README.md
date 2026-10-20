@@ -16,12 +16,14 @@ npm run build   # gera a pasta dist/
 npm run preview
 ```
 
-## Deploy no Netlify
+## Deploy no Cloudflare
 
-O arquivo `netlify.toml` já configura:
+O arquivo `wrangler.jsonc` configura o deploy como Worker com arquivos estáticos:
+
+- Pasta publicada: `dist`
+- Fallback de SPA (rotas desconhecidas servem o `index.html`)
+
+No painel da Cloudflare, importe este repositório usando:
 
 - Comando de build: `npm run build`
-- Pasta de publicação: `dist`
-- Fallback de SPA (todas as rotas apontam para `index.html`)
-
-Basta conectar este repositório no Netlify.
+- Comando de deploy: `npx wrangler deploy`
