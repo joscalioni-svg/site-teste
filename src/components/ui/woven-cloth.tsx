@@ -9,8 +9,33 @@ type FocusTarget = {
   width?: string;
 };
 
+export type WovenClothLabels = {
+  monogram: string;
+  tagline: string;
+  line1: string;
+  line2: string;
+  caption: string;
+};
+
+export type WovenClothPalette = {
+  /** Gradiente do fundo do tecido (topo, meio, base) */
+  ground: readonly [string, string, string];
+  /** Borda externa e monograma */
+  ink: string;
+  /** Borda interna, tagline e legenda */
+  inkDeep: string;
+  /** Linhas principais do título */
+  inkStrong: string;
+  /** Luz de contorno (hex) */
+  rim: string;
+  /** Fundo atrás do tecido (hex ou "transparent") */
+  background: string;
+};
+
 export type WovenClothProps = {
   mode?: EffectMode;
+  labels?: Partial<WovenClothLabels>;
+  palette?: Partial<WovenClothPalette>;
   hue?: number;
   saturation?: number;
   brightness?: number;
@@ -24,8 +49,24 @@ export const WOVEN_CLOTH_DEFAULTS = {
   brightness: 1,
 } as const;
 
+export const WOVEN_CLOTH_LABELS: WovenClothLabels = {
+  monogram: "W C",
+  tagline: "· WOVEN CLOTH ·",
+  line1: "WOVEN",
+  line2: "CLOTH",
+  caption: "T E X T I L E   S I M U L A T I O N",
+};
+
+export const WOVEN_CLOTH_PALETTE: WovenClothPalette = {
+  ground: ["#efe6d4", "#e9dfca", "#e3d7bf"],
+  ink: "#a5202c",
+  inkDeep: "#7c1622",
+  inkStrong: "#9e1e2a",
+  rim: "#b02330",
+  background: "#16090b",
+};
+
 const WOVEN_CLOTH_TITLE = "Woven Cloth kinetic textile";
-const WOVEN_CLOTH_BACKGROUND = "#16090b";
 const WOVEN_CLOTH_TARGETS: readonly FocusTarget[] = [
   {
     selector: "body > div.fixed.inset-0.overflow-hidden.z-0",
@@ -417,18 +458,23 @@ function replaceRequired(source: string, authored: string, focused: string) {
   return source.replace(authored, focused);
 }
 
-function wovenClothLabelSource(source: string) {
+// Literal de string JS seguro para entrar num <script> do srcDoc
+function jsString(value: string) {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+function wovenClothLabelSource(source: string, labels: WovenClothLabels) {
   return [
-    ["x.fillText('L W', W/2, 190);", "x.fillText('W C', W/2, 190);"],
+    ["x.fillText('L W', W/2, 190);", `x.fillText(${jsString(labels.monogram)}, W/2, 190);`],
     [
       "x.fillText('· KYOTO ·', W/2, 246);",
-      "x.fillText('· WOVEN CLOTH ·', W/2, 246);",
+      `x.fillText(${jsString(labels.tagline)}, W/2, 246);`,
     ],
-    ["x.fillText('LUMINA', W/2, 400);", "x.fillText('WOVEN', W/2, 400);"],
-    ["x.fillText('WEAVERS', W/2, 520);", "x.fillText('CLOTH', W/2, 520);"],
+    ["x.fillText('LUMINA', W/2, 400);", `x.fillText(${jsString(labels.line1)}, W/2, 400);`],
+    ["x.fillText('WEAVERS', W/2, 520);", `x.fillText(${jsString(labels.line2)}, W/2, 520);`],
     [
       "x.fillText('K I N E T I C   T E X T I L E S   ·   2 0 2 4', W/2, 626);",
-      "x.fillText('T E X T I L E   S I M U L A T I O N', W/2, 626);",
+      `x.fillText(${jsString(labels.caption)}, W/2, 626);`,
     ],
   ].reduce(
     (adapted, [authored, focused]) =>
@@ -437,12 +483,47 @@ function wovenClothLabelSource(source: string) {
   );
 }
 
-function buildFocusedDocument(_mode: EffectMode) {
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+function safeHex(value: string, fallback: string) {
+  return HEX_COLOR.test(value) ? value : fallback;
+}
+
+function wovenClothPaletteSource(source: string, palette: WovenClothPalette) {
+  const d = WOVEN_CLOTH_PALETTE;
+  const colors: [string, string][] = [
+    [d.ground[0], safeHex(palette.ground[0], d.ground[0])],
+    [d.ground[1], safeHex(palette.ground[1], d.ground[1])],
+    [d.ground[2], safeHex(palette.ground[2], d.ground[2])],
+    [d.ink, safeHex(palette.ink, d.ink)],
+    [d.inkDeep, safeHex(palette.inkDeep, d.inkDeep)],
+    [d.inkStrong, safeHex(palette.inkStrong, d.inkStrong)],
+  ];
+  const recolored = colors.reduce(
+    (adapted, [authored, focused]) => adapted.replaceAll(`'${authored}'`, `'${focused}'`),
+    source,
+  );
+  const rim = safeHex(palette.rim, d.rim).slice(1);
+  return replaceRequired(
+    recolored,
+    "new THREE.DirectionalLight(0xb02330, 0.42)",
+    `new THREE.DirectionalLight(0x${rim}, 0.42)`,
+  );
+}
+
+function buildFocusedDocument(
+  _mode: EffectMode,
+  labels: WovenClothLabels,
+  palette: WovenClothPalette,
+) {
   const targetJson = JSON.stringify(WOVEN_CLOTH_TARGETS).replace(
     /</g,
     "\\u003c",
   );
-  const background = WOVEN_CLOTH_BACKGROUND;
+  const background =
+    palette.background === "transparent"
+      ? "transparent"
+      : safeHex(palette.background, WOVEN_CLOTH_PALETTE.background);
   const focusStyle = `<style data-threeui-focus>
 html, body { width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: ${background} !important; }
 body { position: relative !important; display: flex !important; align-items: center !important; justify-content: center !important; }
@@ -484,7 +565,10 @@ body[data-threeui-ready] > [data-threeui-role] { visibility: visible !important;
   window.addEventListener('load', isolate, { once: true });
 })();
 </script>`;
-  const presentedSource = wovenClothLabelSource(luminaWeaversClothSource);
+  const presentedSource = wovenClothPaletteSource(
+    wovenClothLabelSource(luminaWeaversClothSource, labels),
+    palette,
+  );
   return presentedSource
     .replace(/<\/head>/i, `${focusStyle}</head>`)
     .replace(/<\/body>/i, `${focusScript}</body>`);
@@ -492,6 +576,8 @@ body[data-threeui-ready] > [data-threeui-role] { visibility: visible !important;
 
 function WovenCloth({
   mode = "dark",
+  labels,
+  palette,
   hue = WOVEN_CLOTH_DEFAULTS.hue,
   saturation = WOVEN_CLOTH_DEFAULTS.saturation,
   brightness = WOVEN_CLOTH_DEFAULTS.brightness,
@@ -499,7 +585,12 @@ function WovenCloth({
   style,
 }: WovenClothProps) {
   const safeMode: EffectMode = mode === "light" ? "light" : "dark";
-  const source = useMemo(() => buildFocusedDocument(safeMode), [safeMode]);
+  const fullLabels = { ...WOVEN_CLOTH_LABELS, ...labels };
+  const fullPalette = { ...WOVEN_CLOTH_PALETTE, ...palette };
+  // Chave estável para não recriar o iframe a cada render com objetos inline
+  const configKey = JSON.stringify([fullLabels, fullPalette]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const source = useMemo(() => buildFocusedDocument(safeMode, fullLabels, fullPalette), [safeMode, configKey]);
   const safeHue = clamp(hue, -180, 180);
   const safeSaturation = clamp(saturation, 0, 2);
   const safeBrightness = clamp(brightness, 0.35, 1.65);
@@ -521,7 +612,10 @@ function WovenCloth({
         width: "100%",
         height: "100%",
         border: 0,
-        background: WOVEN_CLOTH_BACKGROUND,
+        background: fullPalette.background,
+        // Sem isso o Chromium pinta um fundo opaco atrás de um iframe transparente
+        // quando o color-scheme da página é diferente do documento interno
+        colorScheme: "normal",
         filter,
         ...style,
       }}

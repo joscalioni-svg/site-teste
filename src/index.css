@@ -2,3 +2,25 @@
 
 /* Não gera classes a partir dos arquivos da skill */
 @source not "../.claude";
+
+@theme {
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", ui-serif, Georgia, serif;
+
+  --color-ink: #0b0710;
+  --color-plum: #2a1838;
+  --color-plum-deep: #1a0f24;
+  --color-gold: #d4af37;
+  --color-gold-soft: #e8cf86;
+  --color-cream: #f3ead8;
+  --color-mist: #c9bcd6;
+}
+
+html {
+  background-color: var(--color-ink);
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-ink font-sans text-cream antialiased;
+}
