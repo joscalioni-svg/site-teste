@@ -1,10 +1,12 @@
 import { Mail } from 'lucide-react'
+import { Benefits } from '@/components/sections/benefits'
 import { Hero } from '@/components/sections/hero'
 
 function App() {
   return (
     <>
       <Hero />
+      <Benefits />
       <section
         id="contato"
         aria-labelledby="contato-title"
